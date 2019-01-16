@@ -1,5 +1,4 @@
 <template>
-
   <b-card>
     <b-row>
       <b-col sm="3" class="text-left">
@@ -9,14 +8,15 @@
       <b-col>Last Active: {{last_active}}</b-col>
       <b-col align="right">
         <b-button-group>
-          <b-button @click="download" size="sm" variant="secondary">Raw Data</b-button>
-          <b-button @click="activate" size="sm" variant="success">Configuration</b-button>
+          <b-button @click="download" size="sm" variant="primary">Raw Data</b-button>
+          <b-button @click="activate" size="sm" variant="info">Configuration</b-button>
         </b-button-group>
       </b-col>
     </b-row>
     <b-collapse :id="collapse_id" v-model="collapsed">
       <p class="text-left">
-        <b-table stacked :items="[sensor.config]"/>
+        <b-table stacked :items="[sensor.config]">
+        </b-table>
       </p>
     </b-collapse>
   </b-card>
@@ -32,7 +32,8 @@
     name: 'SensorItem',
     data () {
       return {
-        collapsed: false
+        collapsed: false,
+        fields: ['Sensor Name', 'Last Activity', 'Actions']
       }
     },
     props: {

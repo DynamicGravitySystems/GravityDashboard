@@ -1,12 +1,19 @@
+<!--Old chart component-->
 <template>
   <b-card :title="sensor.name" style="width: 100%">
     <b-row>
-      <b-col><b-form-input v-model="points.length"></b-form-input></b-col>
+      <b-col>
+        <b-form-input v-model="points.length" readonly></b-form-input>
+      </b-col>
       <b-col cols="8">
         <b-input-group>
-          <b-input-group-text>Refresh</b-input-group-text>
+          <b-input-group-text id="refresh-label">Refresh</b-input-group-text>
+          <b-popover target="refresh-label" triggers="hover"
+                     content="Set how often the chart refreshes." placement="top"/>
           <b-form-select v-model="state.refresh" :options="refresh_opts"/>
-          <b-input-group-text>Window</b-input-group-text>
+          <b-input-group-text id="window-label">Window</b-input-group-text>
+          <b-popover target="window-label" triggers="hover" content="Set the window length of the plot"
+                     placement="top"/>
           <b-form-select v-model="state.window" :options="window_opts"/>
           <b-form-radio-group id="refreshEnabled" buttons v-model="state.enabled"
                               :options="enabled_opts" button-variant="outline-primary"
@@ -48,7 +55,8 @@
         ],
         timeout_id: -1,
         labeldiv: this.chartid + '-labels',
-        decimate: 10,
+        decimate: 0,
+        lastrequest: moment(),
         state: {
           window: 86400,
           refresh: 5000,
@@ -87,15 +95,13 @@
     },
     methods: {
       requestURI: function () {
-        return `${this.endpoint}view/${this.sid}/${this.lastDate().valueOf()}?decimate=${this.decimate}`
-      },
-      lastDate: function () {
-        if (this.points.length > 1) {
-          return moment(this.points[this.points.length - 1][0])
+        let delta
+        if (this.points.length === 0) {
+          delta = this.state.window
         } else {
-          console.log(`fetching data from ${this.state.window} seconds ago`)
-          return moment().subtract(this.state.window, 'seconds')
+          delta = moment().diff(this.lastrequest, 'seconds') + 1
         }
+        return `${this.endpoint}/view/${this.sid}?delta=${delta}&decimate=${this.decimate}`
       },
       fetch_next: function () {
         // fetch next data from server
@@ -103,21 +109,22 @@
         fetch(this.requestURI())
           .then(response => {
             response.json().then(value => {
-              if (value['data'].length < 1) {
+              if (value['data'].length === 0) {
                 console.debug('Received no data from server')
               } else {
                 console.debug(`fetched ${value['data'].length} points`)
+                this.lastrequest = moment()
                 value['data'].forEach(line => {
                   this.points.push([new Date(line.datetime), line.gravity])
                 })
-                while (this.points.length > this.window) {
+                while (this.points.length > (this.window / this.decimate)) {
                   // Remove points outside of the window length
                   this.points.shift()
                 }
                 updateChart(this.chart, this.points)
               }
               if (this.state.enabled) {
-                this.timeout_id = setTimeout(this.fetch_next, this.state.refresh)
+                this.timeout_id = setTimeout(this.fetch_next, this.state.refresh + Math.random() * 100)
               }
             })
           }).catch(reason => {
@@ -160,7 +167,7 @@
       'state.refresh': function (refresh, oldRefresh) {
         if (refresh !== oldRefresh) {
           this.put_state()
-          console.debug('updating timeout interval')
+          console.debug('updating timeout fetch_interval')
           // this.fetch_next()
           // this.timeout_id = setTimeout(this.fetch_next, this.state.refresh)
         }
@@ -170,15 +177,20 @@
         if (window > oldWindow) {
           console.debug(`window length increased to ${window}`)
           clearTimeout(this.timeout_id)
-          this.points = []
+          this.points[0] = [new Date(), 10000.0]
           updateChart(this.chart, this.points)
+          this.points.shift()
           this.timeout_id = setTimeout(this.fetch_next, this.state.refresh)
         } else {
           console.debug('trimming extra points')
           while (this.points.length > this.window) {
             this.points.shift()
           }
+          if (this.points.length === 0) {
+            this.points[0] = [new Date(), 10000.0]
+          }
           updateChart(this.chart, this.points)
+          this.points.shift()
         }
       }
     },
@@ -205,6 +217,17 @@
     },
     beforeDestroy () {
       clearTimeout(this.timeout_id)
+    },
+    destroyed () {
+      console.debug('Chart destroyed')
+    },
+    deactivated () {
+      console.debug('Chart deactivated')
+      // TODO: Stop refresh when chart is deactivated
+    },
+    activated () {
+      console.debug('Chart activated')
+      // TODO: Start refresh (if user hasn't pasued manually)
     }
   }
 </script>

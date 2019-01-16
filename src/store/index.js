@@ -20,8 +20,8 @@ const localStorageWatcher = store => {
 export default new Vuex.Store({
   plugins: [localStorageWatcher],
   state: {
-    // endpoint: 'http://dgs-collector.ad.dynamicgravitysystems.com/',
-    endpoint: 'http://localhost:5000/',
+    // endpoint: 'http://dgs-collector.ad.dynamicgravitysystems.com',
+    endpoint: 'http://localhost:5000',
     sensors: [],
     sensorsAge: null,
     test: 0
@@ -35,7 +35,7 @@ export default new Vuex.Store({
   },
   actions: {
     fetchSensors ({commit, state}) {
-      fetch(state.endpoint + 'sensor/list/').then(response => {
+      fetch(state.endpoint + '/view/list').then(response => {
         response.json().then(value => {
           commit('sensors', value)
         })

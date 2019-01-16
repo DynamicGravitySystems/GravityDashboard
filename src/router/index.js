@@ -1,8 +1,9 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Home from '@/components/Home'
-import SensorDisplay from '@/components/SensorListView'
-import GravityChart from '@/components/GravityChartView'
+import Home from '@/views/HomeView'
+import SensorDisplay from '@/views/SensorListView'
+import GravityChart from '@/views/GravityChartView'
+import TideGravity from '@/views/TideView'
 
 Vue.use(Router)
 
@@ -22,7 +23,14 @@ export default new Router({
     {
       path: '/gravity',
       name: 'GravityChart',
-      component: GravityChart
+      components: {
+        default: GravityChart
+      }
+    },
+    {
+      path: '/tide',
+      name: 'TideGravity',
+      component: TideGravity
     }
   ]
 })
